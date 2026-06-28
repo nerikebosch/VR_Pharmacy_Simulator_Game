@@ -34,7 +34,7 @@ public class OrderManager : MonoBehaviour
         }
 
         // 2. Decide how many different colors they want (e.g., 1 or 2 types)
-        int typesOfPills = Random.Range(1, 3);
+        int typesOfPills = Random.Range(1, 4);
         List<PillColor> chosenColors = new List<PillColor>();
 
         // 3. Generate the items
