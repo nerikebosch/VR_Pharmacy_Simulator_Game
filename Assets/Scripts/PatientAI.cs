@@ -56,9 +56,8 @@ public class PatientAI : MonoBehaviour
         // 2. If waiting at the counter, look at it
         if (isWaitingAtCounter)
         {
-            Vector3 direction = (counterTarget.position - transform.position).normalized;
-            Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
-            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
+            // Simply smoothly rotate to match the Counter Target's exact rotation!
+            transform.rotation = Quaternion.Slerp(transform.rotation, counterTarget.rotation, Time.deltaTime * 5f);
         }
 
         // 3. If walking OUT and they reach the door

@@ -1,19 +1,37 @@
 using UnityEngine;
-using UnityEngine.SceneManagement; // Required for loading scenes!
+using UnityEngine.SceneManagement;
+using TMPro;
 
 public class MainMenuManager : MonoBehaviour
 {
-    public void StartGame()
+    [Header("Save Slot UI")]
+    public TextMeshProUGUI slot1Text;
+    public TextMeshProUGUI slot2Text;
+
+    void Start()
     {
-        Debug.Log("Starting Shift...");
-        // This loads the scene at Index 1 (we will set this up in Step 4)
-        SceneManager.LoadScene(1);
+        // When the menu loads, check the saved money for each slot!
+        // The "0" means if no save exists, default to $0.
+        int moneySlot1 = PlayerPrefs.GetInt("Money_Slot_1", 0);
+        int moneySlot2 = PlayerPrefs.GetInt("Money_Slot_2", 0);
+
+        slot1Text.text = "Save 1\n$" + moneySlot1;
+        slot2Text.text = "Save 2\n$" + moneySlot2;
+    }
+
+    // Call this from your UI Buttons! Pass in 1, 2, or 3.
+    public void LoadSaveSlot(int slotNumber)
+    {
+        // Tell the game which slot we are actively playing on
+        PlayerPrefs.SetInt("ActiveSlot", slotNumber);
+        PlayerPrefs.Save(); // Lock it in
+
+        Debug.Log("Starting Shift on Save Slot: " + slotNumber);
+        SceneManager.LoadScene(1); // Load the Pharmacy!
     }
 
     public void QuitGame()
     {
-        Debug.Log("Quitting Game...");
-        // Quits the application (Note: This only works in a built .apk or .exe, not in the Unity Editor)
         Application.Quit();
     }
 }

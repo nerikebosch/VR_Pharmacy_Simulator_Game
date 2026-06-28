@@ -20,6 +20,7 @@ public class OrderManager : MonoBehaviour
     [Header("System Links")]
     public DeliveryZone deliveryZone;
     public PatientAI activePatient;
+    public GameManager gameManager;
 
     [Header("Patient Spawning (NEW)")]
     public GameObject patientPrefab;     // The character prefab to spawn
@@ -65,7 +66,7 @@ public class OrderManager : MonoBehaviour
             orderUIRows.Add(randomColor, amountText);
         }
 
-        orderCanvas.SetActive(true);// CHANGED: Show the panel instead of the whole canvas
+        //orderCanvas.SetActive(true);// CHANGED: Show the panel instead of the whole canvas
         orderPanel.gameObject.SetActive(true);
     }
 
@@ -126,11 +127,21 @@ public class OrderManager : MonoBehaviour
         if (isOrderCorrect)
         {
             Debug.Log("Order Correct! Patient is leaving.");
+
+            // --- NEW PAYOUT LOGIC ---
+            int g = 0, p = 0, b = 0, r = 0;
+            foreach (var item in currentOrder)
+            {
+                if (item.Key == PillColor.Green) g = item.Value;
+                if (item.Key == PillColor.Pink) p = item.Value;
+                if (item.Key == PillColor.Blue) b = item.Value;
+                if (item.Key == PillColor.Red) r = item.Value;
+            }
+            if (gameManager != null) gameManager.PayForOrder(g, p, b, r);
+            // ------------------------
+
             deliveryZone.ClearZone();
-
-            // CHANGED: Hide the panel instead of the whole canvas
             orderPanel.gameObject.SetActive(false);
-
             activePatient.LeavePharmacy();
             StartCoroutine(SpawnNextPatientTimer(10f));
         }
