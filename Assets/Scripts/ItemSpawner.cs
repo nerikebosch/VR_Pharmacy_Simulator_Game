@@ -4,10 +4,12 @@ using System.Collections;
 public class ItemSpawner : MonoBehaviour
 {
     [Header("Prefab to Spawn")]
-    public GameObject itemPrefab; // Assign your Pill or Bottle prefab here
+    public GameObject itemPrefab;
 
     [Header("Spawn Settings")]
-    public float respawnDelay = 1.0f; // Time in seconds before a new one appears
+    public float respawnDelay = 1.0f;
+    // How far the item needs to move before we consider it "taken"
+    public float distanceToTriggerRespawn = 0.2f;
 
     private GameObject currentSpawnedItem;
     private bool isOccupied = false;
@@ -17,26 +19,34 @@ public class ItemSpawner : MonoBehaviour
         SpawnItem();
     }
 
+    void Update()
+    {
+        // If we have an item, check how far it is from the spawner
+        if (isOccupied && currentSpawnedItem != null)
+        {
+            float distance = Vector3.Distance(transform.position, currentSpawnedItem.transform.position);
+
+            // If the item was moved away (picked up or knocked over)
+            if (distance > distanceToTriggerRespawn)
+            {
+                isOccupied = false;
+                currentSpawnedItem = null;
+                StartCoroutine(RespawnTimer());
+            }
+        }
+        // If the item was destroyed (e.g., dropped in the bottle) while still sitting on the spawner
+        else if (isOccupied && currentSpawnedItem == null)
+        {
+            isOccupied = false;
+            StartCoroutine(RespawnTimer());
+        }
+    }
+
     void SpawnItem()
     {
         if (itemPrefab == null) return;
-
-        // Spawn the item at the exact position and rotation of this spawner object
         currentSpawnedItem = Instantiate(itemPrefab, transform.position, transform.rotation);
         isOccupied = true;
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        // Check if the object leaving the zone is the one we spawned
-        if (isOccupied && other.gameObject == currentSpawnedItem)
-        {
-            isOccupied = false;
-            currentSpawnedItem = null;
-
-            // Start a timer to spawn the next one so it doesn't pop in instantly
-            StartCoroutine(RespawnTimer());
-        }
     }
 
     IEnumerator RespawnTimer()

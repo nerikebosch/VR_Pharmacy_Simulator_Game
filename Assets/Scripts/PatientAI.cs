@@ -3,44 +3,69 @@ using UnityEngine.AI;
 
 public class PatientAI : MonoBehaviour
 {
-    public Transform counterTarget; // Where the patient needs to go
+    public Transform counterTarget;
+    public Transform exitDoorTarget;
+    public OrderManager orderManager;
 
     private NavMeshAgent agent;
     private Animator animator;
 
-    void Start()
+    // These act as the AI's "Brain" so it knows what it is currently doing
+    private bool isLeaving = false;
+    private bool isWaitingAtCounter = false;
+
+    void Awake()
     {
+        // Awake runs before ANYTHING else, guaranteeing the components are ready
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-
-        // Tell the agent to start walking to the counter
-        if (counterTarget != null)
-        {
-            agent.SetDestination(counterTarget.position);
-            animator.SetBool("isWalking", true);
-        }
     }
 
-    // Add this reference at the top of your PatientAI script:
-    public OrderManager orderManager;
-    private bool hasOrdered = false; // Prevents spamming the order
+    // A custom setup function we can call safely from the Spawner
+    public void SetupAndWalkToCounter(Transform counter, Transform exit, OrderManager manager)
+    {
+        counterTarget = counter;
+        exitDoorTarget = exit;
+        orderManager = manager;
+
+        isLeaving = false;
+        isWaitingAtCounter = false;
+
+        agent.SetDestination(counterTarget.position);
+        animator.SetBool("isWalking", true);
+    }
+
+    public void LeavePharmacy()
+    {
+        isLeaving = true;
+        isWaitingAtCounter = false;
+        animator.SetBool("isWalking", true);
+        agent.SetDestination(exitDoorTarget.position);
+    }
 
     void Update()
     {
-        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+        // 1. If walking IN and they reach the counter
+        if (!isLeaving && !isWaitingAtCounter && !agent.pathPending && agent.remainingDistance <= 0.1f)
         {
+            isWaitingAtCounter = true;
             animator.SetBool("isWalking", false);
+            orderManager.GenerateRandomOrder();
+        }
 
-            // NEW CODE: Trigger the order once!
-            if (!hasOrdered)
-            {
-                orderManager.GenerateRandomOrder();
-                hasOrdered = true;
-            }
-
+        // 2. If waiting at the counter, look at it
+        if (isWaitingAtCounter)
+        {
             Vector3 direction = (counterTarget.position - transform.position).normalized;
             Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
             transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
+        }
+
+        // 3. If walking OUT and they reach the door
+        if (isLeaving && !agent.pathPending && agent.remainingDistance <= 0.5f)
+        {
+            // They successfully left the building. Delete them!
+            Destroy(gameObject);
         }
     }
 }

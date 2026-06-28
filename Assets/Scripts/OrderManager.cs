@@ -2,13 +2,14 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using System.Collections; // Needed for timers
 
 public class OrderManager : MonoBehaviour
 {
     [Header("UI References")]
-    public GameObject orderItemPrefab; // Drag your OrderItemRow prefab here
-    public Transform orderPanel;       // Drag your BackgroundPanel here
-    public GameObject orderCanvas;     // The whole canvas to hide/show
+    public GameObject orderItemPrefab;
+    public Transform orderPanel;
+    public GameObject orderCanvas;
 
     [Header("Pill Sprites")]
     public Sprite greenPill;
@@ -16,57 +17,144 @@ public class OrderManager : MonoBehaviour
     public Sprite bluePill;
     public Sprite redPill;
 
-    // A simple enum to track colors
-    private enum PillColor { Green, Pink, Blue, Red }
+    [Header("System Links")]
+    public DeliveryZone deliveryZone;
+    public PatientAI activePatient;
+
+    [Header("Patient Spawning (NEW)")]
+    public GameObject patientPrefab;     // The character prefab to spawn
+    public Transform patientSpawnPoint;  // Where they appear (the door)
+    public Transform counterTarget;      // Where they walk to (the counter)
+    public Transform exitDoorTarget;     // Where they walk to leave
+
+    private Dictionary<PillColor, int> currentOrder = new Dictionary<PillColor, int>();
+    private Dictionary<PillColor, TextMeshProUGUI> orderUIRows = new Dictionary<PillColor, TextMeshProUGUI>();
 
     void Start()
     {
-        // Hide the UI when the game starts
-        orderCanvas.SetActive(false);
+        // CHANGED: Hide the panel instead of the whole canvas
+        orderPanel.gameObject.SetActive(false);
+
+        if (activePatient != null)
+        {
+            activePatient.SetupAndWalkToCounter(counterTarget, exitDoorTarget, this);
+        }
     }
 
     public void GenerateRandomOrder()
     {
-        // 1. Clear old orders
-        foreach (Transform child in orderPanel)
-        {
-            Destroy(child.gameObject);
-        }
+        currentOrder.Clear();
+        orderUIRows.Clear();
+        foreach (Transform child in orderPanel) Destroy(child.gameObject);
 
-        // 2. Decide how many different colors they want (e.g., 1 or 2 types)
         int typesOfPills = Random.Range(1, 4);
-        List<PillColor> chosenColors = new List<PillColor>();
 
-        // 3. Generate the items
         for (int i = 0; i < typesOfPills; i++)
         {
-            // Pick a random color
             PillColor randomColor = (PillColor)Random.Range(0, 4);
+            if (currentOrder.ContainsKey(randomColor)) continue;
 
-            // Prevent duplicate colors in the same order
-            if (chosenColors.Contains(randomColor)) continue;
-            chosenColors.Add(randomColor);
-
-            // Pick a random amount (1 to 3 pills)
             int randomAmount = Random.Range(1, 4);
+            currentOrder.Add(randomColor, randomAmount);
 
-            // 4. Spawn the UI Row
             GameObject newRow = Instantiate(orderItemPrefab, orderPanel);
-
-            // 5. Update the Text
             TextMeshProUGUI amountText = newRow.GetComponentInChildren<TextMeshProUGUI>();
             amountText.text = "x" + randomAmount.ToString();
+            newRow.transform.Find("PillIcon").GetComponent<Image>().sprite = GetSpriteForColor(randomColor);
 
-            // 6. Update the Icon Image
-            Image pillIcon = newRow.transform.Find("PillIcon").GetComponent<Image>();
-            pillIcon.sprite = GetSpriteForColor(randomColor);
+            orderUIRows.Add(randomColor, amountText);
         }
 
-        // Show the UI!
-        orderCanvas.SetActive(true);
+        orderCanvas.SetActive(true);// CHANGED: Show the panel instead of the whole canvas
+        orderPanel.gameObject.SetActive(true);
     }
 
-    // Helper function to match the enum to the correct image
+    public void RefreshUI()
+    {
+        Dictionary<PillColor, int> submittedPills = new Dictionary<PillColor, int>();
+        foreach (PillBottle bottle in deliveryZone.bottlesInZone)
+        {
+            foreach (PillColor color in bottle.pillsInside)
+            {
+                if (submittedPills.ContainsKey(color)) submittedPills[color]++;
+                else submittedPills.Add(color, 1);
+            }
+        }
+
+        foreach (var orderItem in currentOrder)
+        {
+            PillColor color = orderItem.Key;
+            int totalNeeded = orderItem.Value;
+            int currentlyDelivered = submittedPills.ContainsKey(color) ? submittedPills[color] : 0;
+
+            int remaining = totalNeeded - currentlyDelivered;
+            if (remaining < 0) remaining = 0;
+
+            if (orderUIRows.ContainsKey(color))
+            {
+                orderUIRows[color].text = "x" + remaining.ToString();
+
+                if (remaining == 0) orderUIRows[color].color = Color.green;
+                else orderUIRows[color].color = Color.black;
+            }
+        }
+    }
+
+    public void CheckOrderAndSubmit()
+    {
+        Dictionary<PillColor, int> submittedPills = new Dictionary<PillColor, int>();
+        foreach (PillBottle bottle in deliveryZone.bottlesInZone)
+        {
+            foreach (PillColor color in bottle.pillsInside)
+            {
+                if (submittedPills.ContainsKey(color)) submittedPills[color]++;
+                else submittedPills.Add(color, 1);
+            }
+        }
+
+        bool isOrderCorrect = true;
+        foreach (var orderItem in currentOrder)
+        {
+            // CHANGED: Now uses '<' so it passes even if you put extra pills in!
+            if (!submittedPills.ContainsKey(orderItem.Key) || submittedPills[orderItem.Key] < orderItem.Value)
+            {
+                isOrderCorrect = false;
+                break;
+            }
+        }
+
+        if (isOrderCorrect)
+        {
+            Debug.Log("Order Correct! Patient is leaving.");
+            deliveryZone.ClearZone();
+
+            // CHANGED: Hide the panel instead of the whole canvas
+            orderPanel.gameObject.SetActive(false);
+
+            activePatient.LeavePharmacy();
+            StartCoroutine(SpawnNextPatientTimer(10f));
+        }
+        else
+        {
+            Debug.Log("Order Incorrect! Check the console to see what was missing.");
+        }
+    }
+
+    IEnumerator SpawnNextPatientTimer(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        // Create a new patient at the door
+        GameObject newPatientObj = Instantiate(patientPrefab, patientSpawnPoint.position, patientSpawnPoint.rotation);
+        PatientAI newAI = newPatientObj.GetComponent<PatientAI>();
+
+        // FIX: Use our new custom setup function so they have their targets BEFORE they try to walk!
+        newAI.SetupAndWalkToCounter(counterTarget, exitDoorTarget, this);
+
+        // Update the manager to track the new guy
+        activePatient = newAI;
+    }
+
     private Sprite GetSpriteForColor(PillColor color)
     {
         switch (color)
