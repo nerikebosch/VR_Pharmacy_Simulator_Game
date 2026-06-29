@@ -16,6 +16,7 @@ public class GameManager : MonoBehaviour
     public int redPillPrice = 25;
 
     private int sessionMoney = 0;
+    private int sessionPenalties = 0;
     private int totalSavedMoney = 0;
     private int activeSlot;
 
@@ -31,6 +32,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         activeSlot = PlayerPrefs.GetInt("ActiveSlot", 1);
+        sessionPenalties = 0;
         totalSavedMoney = PlayerPrefs.GetInt("Money_Slot_" + activeSlot, 0);
 
         // Clear the text at the start of the day
@@ -76,6 +78,7 @@ public class GameManager : MonoBehaviour
         payout -= penaltyAmount;
 
         sessionMoney += payout;
+        sessionPenalties += penaltyAmount;
         Debug.Log("Paid $" + payout + " (included penalty of $" + penaltyAmount + "). Total shift money: $" + sessionMoney);
     }
 
@@ -94,8 +97,14 @@ public class GameManager : MonoBehaviour
         PlayerPrefs.SetInt("Money_Slot_" + activeSlot, newTotal);
         PlayerPrefs.Save();
 
+        int grossEarnings = sessionMoney + sessionPenalties;
+
         // Show the text and the buttons!
-        endOfShiftText.text = "SHIFT COMPLETE\nEarned Today: $" + sessionMoney + "\nTotal Bank: $" + newTotal;
+        endOfShiftText.text = "SHIFT COMPLETE\n" +
+                              "Gross Earnings: $" + grossEarnings + "\n" +
+                              "Malpractice Penalties: -$" + sessionPenalties +
+                              "Net Profit: $" + sessionMoney + "\n" +
+                              "Total Bank: $" + newTotal;
 
         if (endOfShiftButtons != null) endOfShiftButtons.SetActive(true);
 

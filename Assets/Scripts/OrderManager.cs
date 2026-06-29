@@ -8,8 +8,8 @@ public class OrderManager : MonoBehaviour
 {
     [Header("UI References")]
     public GameObject orderItemPrefab;
-    public Transform orderPanel;
-    public GameObject orderCanvas;
+    public GameObject orderBackgroundPanel; // Turns the whole UI on and off
+    public Transform orderListContainer;    // Where the pills spawn
 
     [Header("Pill Sprites")]
     public Sprite greenPill;
@@ -40,7 +40,7 @@ public class OrderManager : MonoBehaviour
     void Start()
     {
         // CHANGED: Hide the panel instead of the whole canvas
-        orderPanel.gameObject.SetActive(false);
+        orderBackgroundPanel.SetActive(false);
 
         if (activePatient != null)
         {
@@ -52,7 +52,7 @@ public class OrderManager : MonoBehaviour
     {
         currentOrder.Clear();
         orderUIRows.Clear();
-        foreach (Transform child in orderPanel) Destroy(child.gameObject);
+        foreach (Transform child in orderListContainer) Destroy(child.gameObject);
 
         int typesOfPills = Random.Range(1, 4);
 
@@ -64,7 +64,7 @@ public class OrderManager : MonoBehaviour
             int randomAmount = Random.Range(1, 4);
             currentOrder.Add(randomColor, randomAmount);
 
-            GameObject newRow = Instantiate(orderItemPrefab, orderPanel);
+            GameObject newRow = Instantiate(orderItemPrefab, orderListContainer);
             TextMeshProUGUI amountText = newRow.GetComponentInChildren<TextMeshProUGUI>();
             amountText.text = "x" + randomAmount.ToString();
             newRow.transform.Find("PillIcon").GetComponent<Image>().sprite = GetSpriteForColor(randomColor);
@@ -73,7 +73,7 @@ public class OrderManager : MonoBehaviour
         }
 
         //orderCanvas.SetActive(true);// CHANGED: Show the panel instead of the whole canvas
-        orderPanel.gameObject.SetActive(true);
+        orderBackgroundPanel.SetActive(true);
     }
 
     public void RefreshUI()
@@ -162,7 +162,7 @@ public class OrderManager : MonoBehaviour
             if (gameManager != null) gameManager.PayForOrder(g, p, b, r, penalty);
 
             deliveryZone.ClearZone();
-            orderPanel.gameObject.SetActive(false);
+            orderBackgroundPanel.SetActive(false);
             activePatient.LeavePharmacy();
             StartCoroutine(SpawnNextPatientTimer(10f));
         }
