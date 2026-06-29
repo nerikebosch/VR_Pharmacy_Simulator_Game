@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement; // Required to change levels!
+using UnityEngine.XR; // NEW: Required for Haptics
 
 public class GameManager : MonoBehaviour
 {
@@ -17,6 +18,10 @@ public class GameManager : MonoBehaviour
     private int sessionMoney = 0;
     private int totalSavedMoney = 0;
     private int activeSlot;
+
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip endOfShiftSound;
 
     [Header("UI Links")]
     public TextMeshProUGUI timerText;
@@ -75,17 +80,23 @@ public class GameManager : MonoBehaviour
     {
         isShiftActive = false;
 
+        // NEW: Play the End of Shift sound!
+        if (audioSource != null && endOfShiftSound != null)
+        {
+            audioSource.PlayOneShot(endOfShiftSound);
+        }
+
         // Save the new total back to the hard drive
         int newTotal = totalSavedMoney + sessionMoney;
         PlayerPrefs.SetInt("Money_Slot_" + activeSlot, newTotal);
         PlayerPrefs.Save();
 
         // Show the text and the buttons!
-        endOfShiftText.text = "SHIFT COMPLETE\nEarned Today: $" + sessionMoney + "\nTotal Bank: $" + newTotal;
+        endOfShiftText.text = "SHIFT COMPLETE\n\nEarned Today: $" + sessionMoney + "\nTotal Bank: $" + newTotal;
 
         if (endOfShiftButtons != null) endOfShiftButtons.SetActive(true);
 
-        // NEW: Hide the timer text so it gets out of the way!
+        // Hide the timer text so it gets out of the way!
         if (timerText != null) timerText.gameObject.SetActive(false);
     }
 
@@ -101,5 +112,15 @@ public class GameManager : MonoBehaviour
     {
         // Loads Scene 0 (The Main Menu)
         SceneManager.LoadScene(0);
+    }
+
+    public void PlayHaptics(float intensity, float duration)
+    {
+        // Sends a vibration to both hands
+        InputDevice rightHand = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+        InputDevice leftHand = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
+
+        rightHand.SendHapticImpulse(0, intensity, duration);
+        leftHand.SendHapticImpulse(0, intensity, duration);
     }
 }

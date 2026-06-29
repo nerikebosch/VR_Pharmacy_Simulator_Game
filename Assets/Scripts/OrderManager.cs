@@ -22,6 +22,12 @@ public class OrderManager : MonoBehaviour
     public PatientAI activePatient;
     public GameManager gameManager;
 
+    [Header("Audio & Feedback")]
+    public AudioSource audioSource;
+    public AudioClip successSound;
+    public AudioClip errorSound;
+    public AudioClip doorBellSound;
+
     [Header("Patient Spawning (NEW)")]
     public GameObject patientPrefab;     // The character prefab to spawn
     public Transform patientSpawnPoint;  // Where they appear (the door)
@@ -128,7 +134,10 @@ public class OrderManager : MonoBehaviour
         {
             Debug.Log("Order Correct! Patient is leaving.");
 
-            // --- NEW PAYOUT LOGIC ---
+            // NEW: Success Sound & Happy Haptics!
+            if (audioSource && successSound) audioSource.PlayOneShot(successSound);
+            if (gameManager != null) gameManager.PlayHaptics(0.5f, 0.2f); // Medium, short buzz
+
             int g = 0, p = 0, b = 0, r = 0;
             foreach (var item in currentOrder)
             {
@@ -138,7 +147,6 @@ public class OrderManager : MonoBehaviour
                 if (item.Key == PillColor.Red) r = item.Value;
             }
             if (gameManager != null) gameManager.PayForOrder(g, p, b, r);
-            // ------------------------
 
             deliveryZone.ClearZone();
             orderPanel.gameObject.SetActive(false);
@@ -147,7 +155,10 @@ public class OrderManager : MonoBehaviour
         }
         else
         {
-            Debug.Log("Order Incorrect! Check the console to see what was missing.");
+            // NEW: Error Buzzer & Angry Haptics!
+            Debug.Log("Order Incorrect! Try again.");
+            if (audioSource && errorSound) audioSource.PlayOneShot(errorSound);
+            if (gameManager != null) gameManager.PlayHaptics(1.0f, 0.5f); // Hard, long rumble
         }
     }
 
@@ -155,14 +166,12 @@ public class OrderManager : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
 
-        // Create a new patient at the door
+        // NEW: Play the door bell!
+        if (audioSource && doorBellSound) audioSource.PlayOneShot(doorBellSound);
+
         GameObject newPatientObj = Instantiate(patientPrefab, patientSpawnPoint.position, patientSpawnPoint.rotation);
         PatientAI newAI = newPatientObj.GetComponent<PatientAI>();
-
-        // FIX: Use our new custom setup function so they have their targets BEFORE they try to walk!
         newAI.SetupAndWalkToCounter(counterTarget, exitDoorTarget, this);
-
-        // Update the manager to track the new guy
         activePatient = newAI;
     }
 
