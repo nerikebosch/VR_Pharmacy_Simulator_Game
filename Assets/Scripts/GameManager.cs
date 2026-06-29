@@ -6,8 +6,9 @@ using UnityEngine.XR; // NEW: Required for Haptics
 public class GameManager : MonoBehaviour
 {
     [Header("Shift Settings")]
-    public float shiftTimer = 60f; // 1 minute shift
+    public float shiftTimer = 60f;
     private bool isShiftActive = true;
+    private bool isPaused = false; // NEW: Tracks if the game is paused
 
     [Header("Economy")]
     public int greenPillPrice = 10;
@@ -20,6 +21,9 @@ public class GameManager : MonoBehaviour
     private int totalSavedMoney = 0;
     private int activeSlot;
 
+    [Header("Pause Overlay")]
+    public GameObject dimOverlay;
+
     [Header("Audio")]
     public AudioSource audioSource;
     public AudioClip endOfShiftSound;
@@ -29,8 +33,15 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI endOfShiftText;
     public GameObject endOfShiftButtons; // We will put the Next Day/Main Menu buttons inside this!
 
+    // --- NEW UI LINKS ---
+    public GameObject activeShiftButtons; // The folder holding Pause & Quit
+    public TextMeshProUGUI pauseButtonText; // To swap between "Pause" and "Resume"
+
     void Start()
     {
+        Time.timeScale = 1f;
+        isPaused = false;
+
         activeSlot = PlayerPrefs.GetInt("ActiveSlot", 1);
         sessionPenalties = 0;
         totalSavedMoney = PlayerPrefs.GetInt("Money_Slot_" + activeSlot, 0);
@@ -43,11 +54,15 @@ public class GameManager : MonoBehaviour
 
         // Ensure the timer is visible when the day starts!
         if (timerText != null) timerText.gameObject.SetActive(true);
+
+        if (activeShiftButtons != null) activeShiftButtons.SetActive(true);
+
+        if (dimOverlay != null) dimOverlay.SetActive(false);
     }
 
     void Update()
     {
-        if (isShiftActive)
+        if (isShiftActive && !isPaused)
         {
             shiftTimer -= Time.deltaTime;
 
@@ -110,19 +125,43 @@ public class GameManager : MonoBehaviour
 
         // Hide the timer text so it gets out of the way!
         if (timerText != null) timerText.gameObject.SetActive(false);
+
+        if (activeShiftButtons != null) activeShiftButtons.SetActive(false);
     }
 
     // --- SCENE NAVIGATION METHODS ---
 
+    public void TogglePause()
+    {
+        if (!isShiftActive) return; // Don't allow pausing if the shift is already over
+
+        isPaused = !isPaused;
+
+        if (isPaused)
+        {
+            Time.timeScale = 0f; // Freezes physics, AI, and movement instantly
+            if (pauseButtonText != null) pauseButtonText.text = "Resume";
+        }
+        else
+        {
+            Time.timeScale = 1f; // Unfreezes the world
+            if (pauseButtonText != null) pauseButtonText.text = "Pause";
+        }
+
+        if (dimOverlay != null) dimOverlay.SetActive(isPaused);
+    }
+
     public void StartNextDay()
     {
         // This instantly reloads the current Pharmacy scene, acting as a fresh day!
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     public void ReturnToMainMenu()
     {
         // Loads Scene 0 (The Main Menu)
+        Time.timeScale = 1f;
         SceneManager.LoadScene(0);
     }
 
