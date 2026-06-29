@@ -3,35 +3,33 @@ using UnityEngine.AI;
 
 public class PatientAI : MonoBehaviour
 {
-    public Transform counterTarget;
+    public Transform currentTargetSpot; // Where they are currently heading
     public Transform exitDoorTarget;
     public OrderManager orderManager;
 
     private NavMeshAgent agent;
     private Animator animator;
 
-    // These act as the AI's "Brain" so it knows what it is currently doing
     private bool isLeaving = false;
     private bool isWaitingAtCounter = false;
+    public bool isFrontOfLine = false; // NEW: Knows if it's their turn to order
 
     void Awake()
     {
-        // Awake runs before ANYTHING else, guaranteeing the components are ready
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
     }
 
-    // A custom setup function we can call safely from the Spawner
-    public void SetupAndWalkToCounter(Transform counter, Transform exit, OrderManager manager)
+    // NEW: Replaced the old setup method so they can move from spot to spot in line
+    public void MoveToSpot(Transform newSpot, bool frontOfLine)
     {
-        counterTarget = counter;
-        exitDoorTarget = exit;
-        orderManager = manager;
+        currentTargetSpot = newSpot;
+        isFrontOfLine = frontOfLine;
 
         isLeaving = false;
         isWaitingAtCounter = false;
 
-        agent.SetDestination(counterTarget.position);
+        agent.SetDestination(currentTargetSpot.position);
         animator.SetBool("isWalking", true);
     }
 
@@ -45,25 +43,26 @@ public class PatientAI : MonoBehaviour
 
     void Update()
     {
-        // 1. If walking IN and they reach the counter
         if (!isLeaving && !isWaitingAtCounter && !agent.pathPending && agent.remainingDistance <= 0.1f)
         {
             isWaitingAtCounter = true;
             animator.SetBool("isWalking", false);
-            orderManager.GenerateRandomOrder();
+
+            // ONLY place the order if they are at the actual counter!
+            if (isFrontOfLine)
+            {
+                orderManager.GenerateRandomOrder();
+            }
         }
 
-        // 2. If waiting at the counter, look at it
         if (isWaitingAtCounter)
         {
-            // Simply smoothly rotate to match the Counter Target's exact rotation!
-            transform.rotation = Quaternion.Slerp(transform.rotation, counterTarget.rotation, Time.deltaTime * 5f);
+            // Always face forward toward the counter while waiting in line
+            transform.rotation = Quaternion.Slerp(transform.rotation, currentTargetSpot.rotation, Time.deltaTime * 5f);
         }
 
-        // 3. If walking OUT and they reach the door
         if (isLeaving && !agent.pathPending && agent.remainingDistance <= 0.5f)
         {
-            // They successfully left the building. Delete them!
             Destroy(gameObject);
         }
     }

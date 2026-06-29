@@ -19,7 +19,6 @@ public class OrderManager : MonoBehaviour
 
     [Header("System Links")]
     public DeliveryZone deliveryZone;
-    public PatientAI activePatient;
     public GameManager gameManager;
 
     [Header("Audio & Feedback")]
@@ -28,24 +27,29 @@ public class OrderManager : MonoBehaviour
     public AudioClip errorSound;
     public AudioClip doorBellSound;
 
-    [Header("Patient Spawning (NEW)")]
-    public GameObject patientPrefab;     // The character prefab to spawn
-    public Transform patientSpawnPoint;  // Where they appear (the door)
-    public Transform counterTarget;      // Where they walk to (the counter)
-    public Transform exitDoorTarget;     // Where they walk to leave
+    [Header("Patient Spawning (Queue System)")]
+    public GameObject[] patientPrefabs;  // Array of your 5 different character prefabs
+    public Transform[] queueSpots;       // Array of the 3 spots (0=Counter, 1=Middle, 2=Door)
+    public Transform patientSpawnPoint;
+    public Transform exitDoorTarget;
+
+    [Header("Queue Settings")]
+    public int maxQueueSize = 3;
+    public float minSpawnTime = 4f; // Minimum seconds between new customers
+    public float maxSpawnTime = 8f; // Maximum seconds between new customers
+
+    // A list to track who is currently in the store
+    private List<PatientAI> activePatients = new List<PatientAI>();
 
     private Dictionary<PillColor, int> currentOrder = new Dictionary<PillColor, int>();
     private Dictionary<PillColor, TextMeshProUGUI> orderUIRows = new Dictionary<PillColor, TextMeshProUGUI>();
 
     void Start()
     {
-        // CHANGED: Hide the panel instead of the whole canvas
         orderBackgroundPanel.SetActive(false);
 
-        if (activePatient != null)
-        {
-            activePatient.SetupAndWalkToCounter(counterTarget, exitDoorTarget, this);
-        }
+        // Start the infinite spawning loop!
+        StartCoroutine(ContinuousSpawner());
     }
 
     public void GenerateRandomOrder()
@@ -163,8 +167,9 @@ public class OrderManager : MonoBehaviour
 
             deliveryZone.ClearZone();
             orderBackgroundPanel.SetActive(false);
-            activePatient.LeavePharmacy();
-            StartCoroutine(SpawnNextPatientTimer(10f));
+
+            // --- NEW QUEUE ADVANCEMENT LOGIC ---
+            AdvanceQueue();
         }
         else
         {
@@ -174,17 +179,61 @@ public class OrderManager : MonoBehaviour
         }
     }
 
-    IEnumerator SpawnNextPatientTimer(float delay)
+    // NEW: This tells the front person to leave, and everyone else to move up!
+    private void AdvanceQueue()
     {
-        yield return new WaitForSeconds(delay);
+        if (activePatients.Count == 0) return;
 
-        // NEW: Play the door bell!
-        if (audioSource && doorBellSound) audioSource.PlayOneShot(doorBellSound);
+        // 1. Tell the front person to leave
+        PatientAI frontPatient = activePatients[0];
+        frontPatient.LeavePharmacy();
+        activePatients.RemoveAt(0); // Remove them from the list
 
-        GameObject newPatientObj = Instantiate(patientPrefab, patientSpawnPoint.position, patientSpawnPoint.rotation);
-        PatientAI newAI = newPatientObj.GetComponent<PatientAI>();
-        newAI.SetupAndWalkToCounter(counterTarget, exitDoorTarget, this);
-        activePatient = newAI;
+        // 2. Tell everyone else in line to move forward one spot
+        for (int i = 0; i < activePatients.Count; i++)
+        {
+            bool isFrontOfLine = (i == 0); // If they moved to spot 0, it's their turn!
+            activePatients[i].MoveToSpot(queueSpots[i], isFrontOfLine);
+        }
+    }
+
+    // NEW: A loop that constantly checks if there is room for more customers
+    IEnumerator ContinuousSpawner()
+    {
+        while (true) // Run forever
+        {
+            // If the shift is over, stop spawning!
+            if (gameManager != null && gameManager.shiftTimer <= 0) break;
+
+            // If the store isn't full yet, spawn someone
+            if (activePatients.Count < maxQueueSize)
+            {
+                // 1. Pick a random character model!
+                GameObject randomPrefab = patientPrefabs[Random.Range(0, patientPrefabs.Length)];
+
+                // 2. Spawn them
+                GameObject newObj = Instantiate(randomPrefab, patientSpawnPoint.position, patientSpawnPoint.rotation);
+                PatientAI newAI = newObj.GetComponent<PatientAI>();
+
+                newAI.orderManager = this;
+                newAI.exitDoorTarget = exitDoorTarget;
+
+                // 3. Add to our list
+                activePatients.Add(newAI);
+
+                // 4. Tell them which spot to walk to based on how many people are in the store
+                int theirSpotIndex = activePatients.Count - 1;
+                bool isFrontOfLine = (theirSpotIndex == 0);
+                newAI.MoveToSpot(queueSpots[theirSpotIndex], isFrontOfLine);
+
+                // Play the doorbell sound!
+                if (audioSource && doorBellSound) audioSource.PlayOneShot(doorBellSound);
+            }
+
+            // Wait a random amount of seconds before trying to spawn someone again
+            float randomWaitTime = Random.Range(minSpawnTime, maxSpawnTime);
+            yield return new WaitForSeconds(randomWaitTime);
+        }
     }
 
     private Sprite GetSpriteForColor(PillColor color)
