@@ -26,6 +26,7 @@ public class OrderManager : MonoBehaviour
     public AudioClip successSound;
     public AudioClip errorSound;
     public AudioClip doorBellSound;
+    public AudioClip crowdLeaveSound; // NEW: The disappointed sigh!
 
     [Header("Patient Spawning (Queue System)")]
     public GameObject[] patientPrefabs;  // Array of your 5 different character prefabs
@@ -115,6 +116,9 @@ public class OrderManager : MonoBehaviour
     {
         Dictionary<PillColor, int> submittedPills = new Dictionary<PillColor, int>();
         int totalPillsSubmitted = 0;
+
+        // NEW: Stop the button from working if the shift is closed!
+        if (gameManager != null && !gameManager.isShiftActive) return;
 
         // 1. Count EVERYTHING in the delivery zone
         foreach (PillBottle bottle in deliveryZone.bottlesInZone)
@@ -234,6 +238,29 @@ public class OrderManager : MonoBehaviour
             float randomWaitTime = Random.Range(minSpawnTime, maxSpawnTime);
             yield return new WaitForSeconds(randomWaitTime);
         }
+    }
+    public void ClearStore()
+    {
+        // NEW: Play the disappointed crowd sound ONLY if there are people in the store!
+        if (activePatients.Count > 0 && audioSource != null && crowdLeaveSound != null)
+        {
+            audioSource.PlayOneShot(crowdLeaveSound);
+        }
+
+        // 1. Hide the order UI so you can't read it anymore
+        if (orderBackgroundPanel != null) orderBackgroundPanel.SetActive(false);
+
+        // 2. Loop through every patient currently waiting in line
+        foreach (PatientAI patient in activePatients)
+        {
+            if (patient != null)
+            {
+                patient.LeavePharmacy(); // Triggers their walk-out animation
+            }
+        }
+
+        // 3. Empty the list since the store is now officially empty
+        activePatients.Clear();
     }
 
     private Sprite GetSpriteForColor(PillColor color)

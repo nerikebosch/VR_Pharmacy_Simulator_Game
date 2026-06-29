@@ -7,7 +7,7 @@ public class GameManager : MonoBehaviour
 {
     [Header("Shift Settings")]
     public float shiftTimer = 60f;
-    private bool isShiftActive = true;
+    public bool isShiftActive = true;
     private bool isPaused = false; // NEW: Tracks if the game is paused
 
     [Header("Economy")]
@@ -20,6 +20,9 @@ public class GameManager : MonoBehaviour
     private int sessionPenalties = 0;
     private int totalSavedMoney = 0;
     private int activeSlot;
+
+    [Header("System Links")]
+    public OrderManager orderManager;
 
     [Header("Pause Overlay")]
     public GameObject dimOverlay;
@@ -100,6 +103,12 @@ public class GameManager : MonoBehaviour
     private void EndShift()
     {
         isShiftActive = false;
+
+        // NEW: Tell the OrderManager to kick everyone out!
+        if (orderManager != null)
+        {
+            orderManager.ClearStore();
+        }
 
         // NEW: Play the End of Shift sound!
         if (audioSource != null && endOfShiftSound != null)

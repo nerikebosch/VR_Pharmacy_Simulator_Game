@@ -10,24 +10,36 @@ public class MainMenuManager : MonoBehaviour
 
     void Start()
     {
-        // When the menu loads, check the saved money for each slot!
-        // The "0" means if no save exists, default to $0.
+        RefreshUI(); // Update the text when the game boots up
+    }
+
+    // NEW: We put this in a separate function so we can call it after resetting a save!
+    public void RefreshUI()
+    {
         int moneySlot1 = PlayerPrefs.GetInt("Money_Slot_1", 0);
         int moneySlot2 = PlayerPrefs.GetInt("Money_Slot_2", 0);
 
-        slot1Text.text = "Save 1\n$" + moneySlot1;
-        slot2Text.text = "Save 2\n$" + moneySlot2;
+        slot1Text.text = "Save 1 - $" + moneySlot1;
+        slot2Text.text = "Save 2 - $" + moneySlot2;
     }
 
-    // Call this from your UI Buttons! Pass in 1, 2, or 3.
     public void LoadSaveSlot(int slotNumber)
     {
-        // Tell the game which slot we are actively playing on
         PlayerPrefs.SetInt("ActiveSlot", slotNumber);
-        PlayerPrefs.Save(); // Lock it in
+        PlayerPrefs.Save();
+        SceneManager.LoadScene(1);
+    }
 
-        Debug.Log("Starting Shift on Save Slot: " + slotNumber);
-        SceneManager.LoadScene(1); // Load the Pharmacy!
+    // --- NEW: RESET LOGIC ---
+    public void ResetSaveSlot(int slotNumber)
+    {
+        // Delete the specific save data from the hard drive!
+        PlayerPrefs.DeleteKey("Money_Slot_" + slotNumber);
+        PlayerPrefs.Save();
+
+        // Refresh the text to immediately show $0
+        RefreshUI();
+        Debug.Log("Reset Save Slot: " + slotNumber);
     }
 
     public void QuitGame()
