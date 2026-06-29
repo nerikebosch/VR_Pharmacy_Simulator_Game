@@ -63,7 +63,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void PayForOrder(int greens, int pinks, int blues, int reds)
+    public void PayForOrder(int greens, int pinks, int blues, int reds, int penaltyAmount)
     {
         if (!isShiftActive) return;
 
@@ -72,8 +72,11 @@ public class GameManager : MonoBehaviour
                      (blues * bluePillPrice) +
                      (reds * redPillPrice);
 
+        // Deduct the penalty for any wrong/extra pills!
+        payout -= penaltyAmount;
+
         sessionMoney += payout;
-        Debug.Log("Paid $" + payout + " for order! Total shift money: $" + sessionMoney);
+        Debug.Log("Paid $" + payout + " (included penalty of $" + penaltyAmount + "). Total shift money: $" + sessionMoney);
     }
 
     private void EndShift()
@@ -92,7 +95,7 @@ public class GameManager : MonoBehaviour
         PlayerPrefs.Save();
 
         // Show the text and the buttons!
-        endOfShiftText.text = "SHIFT COMPLETE\n\nEarned Today: $" + sessionMoney + "\nTotal Bank: $" + newTotal;
+        endOfShiftText.text = "SHIFT COMPLETE\nEarned Today: $" + sessionMoney + "\nTotal Bank: $" + newTotal;
 
         if (endOfShiftButtons != null) endOfShiftButtons.SetActive(true);
 

@@ -110,19 +110,28 @@ public class OrderManager : MonoBehaviour
     public void CheckOrderAndSubmit()
     {
         Dictionary<PillColor, int> submittedPills = new Dictionary<PillColor, int>();
+        int totalPillsSubmitted = 0;
+
+        // 1. Count EVERYTHING in the delivery zone
         foreach (PillBottle bottle in deliveryZone.bottlesInZone)
         {
             foreach (PillColor color in bottle.pillsInside)
             {
                 if (submittedPills.ContainsKey(color)) submittedPills[color]++;
                 else submittedPills.Add(color, 1);
+
+                totalPillsSubmitted++;
             }
         }
 
+        // 2. Check if they met the minimum requirements
         bool isOrderCorrect = true;
+        int totalPillsRequired = 0;
+
         foreach (var orderItem in currentOrder)
         {
-            // CHANGED: Now uses '<' so it passes even if you put extra pills in!
+            totalPillsRequired += orderItem.Value;
+
             if (!submittedPills.ContainsKey(orderItem.Key) || submittedPills[orderItem.Key] < orderItem.Value)
             {
                 isOrderCorrect = false;
@@ -130,13 +139,16 @@ public class OrderManager : MonoBehaviour
             }
         }
 
+        // 3. Resolve the Order
         if (isOrderCorrect)
         {
             Debug.Log("Order Correct! Patient is leaving.");
-
-            // NEW: Success Sound & Happy Haptics!
             if (audioSource && successSound) audioSource.PlayOneShot(successSound);
-            if (gameManager != null) gameManager.PlayHaptics(0.5f, 0.2f); // Medium, short buzz
+            if (gameManager != null) gameManager.PlayHaptics(0.5f, 0.2f);
+
+            // Calculate the Malpractice Penalty!
+            int extraPills = totalPillsSubmitted - totalPillsRequired;
+            int penalty = extraPills * 5; // $5 fine per wrong pill
 
             int g = 0, p = 0, b = 0, r = 0;
             foreach (var item in currentOrder)
@@ -146,7 +158,8 @@ public class OrderManager : MonoBehaviour
                 if (item.Key == PillColor.Blue) b = item.Value;
                 if (item.Key == PillColor.Red) r = item.Value;
             }
-            if (gameManager != null) gameManager.PayForOrder(g, p, b, r);
+
+            if (gameManager != null) gameManager.PayForOrder(g, p, b, r, penalty);
 
             deliveryZone.ClearZone();
             orderPanel.gameObject.SetActive(false);
@@ -155,10 +168,9 @@ public class OrderManager : MonoBehaviour
         }
         else
         {
-            // NEW: Error Buzzer & Angry Haptics!
             Debug.Log("Order Incorrect! Try again.");
             if (audioSource && errorSound) audioSource.PlayOneShot(errorSound);
-            if (gameManager != null) gameManager.PlayHaptics(1.0f, 0.5f); // Hard, long rumble
+            if (gameManager != null) gameManager.PlayHaptics(1.0f, 0.5f);
         }
     }
 
