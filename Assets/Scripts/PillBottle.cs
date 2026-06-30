@@ -20,7 +20,7 @@ public class PillBottle : MonoBehaviour
             pillsInside.Add(droppedPill.myColor);
             Destroy(other.gameObject);
 
-            // NEW: Play sound and send a tiny haptic "tick" to the hands
+            // Play sound and send a tiny haptic "tick" to the hands
             if (audioSource && dropSound) audioSource.PlayOneShot(dropSound);
             InputDevices.GetDeviceAtXRNode(XRNode.RightHand).SendHapticImpulse(0, 0.2f, 0.1f);
             InputDevices.GetDeviceAtXRNode(XRNode.LeftHand).SendHapticImpulse(0, 0.2f, 0.1f);

@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
-using System.Collections; // Needed for timers
+using System.Collections;
 
 public class OrderManager : MonoBehaviour
 {
@@ -26,10 +26,10 @@ public class OrderManager : MonoBehaviour
     public AudioClip successSound;
     public AudioClip errorSound;
     public AudioClip doorBellSound;
-    public AudioClip crowdLeaveSound; // NEW: The disappointed sigh!
+    public AudioClip crowdLeaveSound;
 
     [Header("Patient Spawning (Queue System)")]
-    public GameObject[] patientPrefabs;  // Array of your 5 different character prefabs
+    public GameObject[] patientPrefabs;  // Array of 5 different character prefabs
     public Transform[] queueSpots;       // Array of the 3 spots (0=Counter, 1=Middle, 2=Door)
     public Transform patientSpawnPoint;
     public Transform exitDoorTarget;
@@ -49,7 +49,7 @@ public class OrderManager : MonoBehaviour
     {
         orderBackgroundPanel.SetActive(false);
 
-        // Start the infinite spawning loop!
+        // Start the infinite spawning loop
         StartCoroutine(ContinuousSpawner());
     }
 
@@ -77,7 +77,7 @@ public class OrderManager : MonoBehaviour
             orderUIRows.Add(randomColor, amountText);
         }
 
-        //orderCanvas.SetActive(true);// CHANGED: Show the panel instead of the whole canvas
+        //Show the panel instead of the whole canvas
         orderBackgroundPanel.SetActive(true);
     }
 
@@ -117,10 +117,10 @@ public class OrderManager : MonoBehaviour
         Dictionary<PillColor, int> submittedPills = new Dictionary<PillColor, int>();
         int totalPillsSubmitted = 0;
 
-        // NEW: Stop the button from working if the shift is closed!
+        // Stop the button from working if the shift is closed
         if (gameManager != null && !gameManager.isShiftActive) return;
 
-        // 1. Count EVERYTHING in the delivery zone
+        // count everything in deliveryzone
         foreach (PillBottle bottle in deliveryZone.bottlesInZone)
         {
             foreach (PillColor color in bottle.pillsInside)
@@ -132,7 +132,7 @@ public class OrderManager : MonoBehaviour
             }
         }
 
-        // 2. Check if they met the minimum requirements
+        // Check if they met the minimum requirements
         bool isOrderCorrect = true;
         int totalPillsRequired = 0;
 
@@ -147,14 +147,14 @@ public class OrderManager : MonoBehaviour
             }
         }
 
-        // 3. Resolve the Order
+        // Resolve the Order
         if (isOrderCorrect)
         {
             Debug.Log("Order Correct! Patient is leaving.");
             if (audioSource && successSound) audioSource.PlayOneShot(successSound);
             if (gameManager != null) gameManager.PlayHaptics(0.5f, 0.2f);
 
-            // Calculate the Malpractice Penalty!
+            // Calculate the Malpractice Penalty
             int extraPills = totalPillsSubmitted - totalPillsRequired;
             int penalty = extraPills * 5; // $5 fine per wrong pill
 
@@ -172,7 +172,6 @@ public class OrderManager : MonoBehaviour
             deliveryZone.ClearZone();
             orderBackgroundPanel.SetActive(false);
 
-            // --- NEW QUEUE ADVANCEMENT LOGIC ---
             AdvanceQueue();
         }
         else
@@ -183,54 +182,54 @@ public class OrderManager : MonoBehaviour
         }
     }
 
-    // NEW: This tells the front person to leave, and everyone else to move up!
+    // This tells the front person to leave, and everyone else to move up
     private void AdvanceQueue()
     {
         if (activePatients.Count == 0) return;
 
-        // 1. Tell the front person to leave
+        // Tell the front person to leave
         PatientAI frontPatient = activePatients[0];
         frontPatient.LeavePharmacy();
         activePatients.RemoveAt(0); // Remove them from the list
 
-        // 2. Tell everyone else in line to move forward one spot
+        // Tell everyone else in line to move forward one spot
         for (int i = 0; i < activePatients.Count; i++)
         {
-            bool isFrontOfLine = (i == 0); // If they moved to spot 0, it's their turn!
+            bool isFrontOfLine = (i == 0); // If they moved to spot 0, it's their turn
             activePatients[i].MoveToSpot(queueSpots[i], isFrontOfLine);
         }
     }
 
-    // NEW: A loop that constantly checks if there is room for more customers
+    // A loop that constantly checks if there is room for more customers
     IEnumerator ContinuousSpawner()
     {
-        while (true) // Run forever
+        while (true)
         {
-            // If the shift is over, stop spawning!
+            // If the shift is over, stop spawning
             if (gameManager != null && gameManager.shiftTimer <= 0) break;
 
             // If the store isn't full yet, spawn someone
             if (activePatients.Count < maxQueueSize)
             {
-                // 1. Pick a random character model!
+                // Pick a random character model
                 GameObject randomPrefab = patientPrefabs[Random.Range(0, patientPrefabs.Length)];
 
-                // 2. Spawn them
+                // Spawn them
                 GameObject newObj = Instantiate(randomPrefab, patientSpawnPoint.position, patientSpawnPoint.rotation);
                 PatientAI newAI = newObj.GetComponent<PatientAI>();
 
                 newAI.orderManager = this;
                 newAI.exitDoorTarget = exitDoorTarget;
 
-                // 3. Add to our list
+                // Add to our list
                 activePatients.Add(newAI);
 
-                // 4. Tell them which spot to walk to based on how many people are in the store
+                // Tell them which spot to walk to based on how many people are in the store
                 int theirSpotIndex = activePatients.Count - 1;
                 bool isFrontOfLine = (theirSpotIndex == 0);
                 newAI.MoveToSpot(queueSpots[theirSpotIndex], isFrontOfLine);
 
-                // Play the doorbell sound!
+                // Play the doorbell sound
                 if (audioSource && doorBellSound) audioSource.PlayOneShot(doorBellSound);
             }
 
@@ -241,16 +240,16 @@ public class OrderManager : MonoBehaviour
     }
     public void ClearStore()
     {
-        // NEW: Play the disappointed crowd sound ONLY if there are people in the store!
+        // Play the disappointed crowd sound only if there are people in the store
         if (activePatients.Count > 0 && audioSource != null && crowdLeaveSound != null)
         {
             audioSource.PlayOneShot(crowdLeaveSound);
         }
 
-        // 1. Hide the order UI so you can't read it anymore
+        // Hide the order UI so you can't read it anymore
         if (orderBackgroundPanel != null) orderBackgroundPanel.SetActive(false);
 
-        // 2. Loop through every patient currently waiting in line
+        // Loop through every patient currently waiting in line
         foreach (PatientAI patient in activePatients)
         {
             if (patient != null)
@@ -259,7 +258,7 @@ public class OrderManager : MonoBehaviour
             }
         }
 
-        // 3. Empty the list since the store is now officially empty
+        // Empty the list since the store is now officially empty
         activePatients.Clear();
     }
 

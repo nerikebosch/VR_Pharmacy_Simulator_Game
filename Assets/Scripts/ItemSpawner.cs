@@ -8,7 +8,7 @@ public class ItemSpawner : MonoBehaviour
 
     [Header("Spawn Settings")]
     public float respawnDelay = 1.0f;
-    // How far the item needs to move before we consider it "taken"
+    // How far the item needs to move before we consider it taken
     public float distanceToTriggerRespawn = 0.2f;
 
     private GameObject currentSpawnedItem;
@@ -34,7 +34,7 @@ public class ItemSpawner : MonoBehaviour
                 StartCoroutine(RespawnTimer());
             }
         }
-        // If the item was destroyed (e.g., dropped in the bottle) while still sitting on the spawner
+        // If the item was destroyed while still sitting on the spawner
         else if (isOccupied && currentSpawnedItem == null)
         {
             isOccupied = false;

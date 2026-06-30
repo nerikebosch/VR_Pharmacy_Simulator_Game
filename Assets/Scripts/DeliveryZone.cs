@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class DeliveryZone : MonoBehaviour
 {
     public List<PillBottle> bottlesInZone = new List<PillBottle>();
-    public OrderManager orderManager; // DRAG YOUR ORDER CANVAS HERE IN INSPECTOR!
+    public OrderManager orderManager;
 
     private void OnTriggerEnter(Collider other)
     {

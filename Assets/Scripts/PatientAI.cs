@@ -12,7 +12,7 @@ public class PatientAI : MonoBehaviour
 
     private bool isLeaving = false;
     private bool isWaitingAtCounter = false;
-    public bool isFrontOfLine = false; // NEW: Knows if it's their turn to order
+    public bool isFrontOfLine = false;
 
     void Awake()
     {
@@ -20,7 +20,6 @@ public class PatientAI : MonoBehaviour
         animator = GetComponent<Animator>();
     }
 
-    // NEW: Replaced the old setup method so they can move from spot to spot in line
     public void MoveToSpot(Transform newSpot, bool frontOfLine)
     {
         currentTargetSpot = newSpot;
@@ -48,7 +47,7 @@ public class PatientAI : MonoBehaviour
             isWaitingAtCounter = true;
             animator.SetBool("isWalking", false);
 
-            // ONLY place the order if they are at the actual counter!
+            // only place the order if they are at the actual counter
             if (isFrontOfLine)
             {
                 orderManager.GenerateRandomOrder();

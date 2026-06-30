@@ -10,10 +10,9 @@ public class MainMenuManager : MonoBehaviour
 
     void Start()
     {
-        RefreshUI(); // Update the text when the game boots up
+        RefreshUI();
     }
 
-    // NEW: We put this in a separate function so we can call it after resetting a save!
     public void RefreshUI()
     {
         int moneySlot1 = PlayerPrefs.GetInt("Money_Slot_1", 0);
@@ -30,10 +29,9 @@ public class MainMenuManager : MonoBehaviour
         SceneManager.LoadScene(1);
     }
 
-    // --- NEW: RESET LOGIC ---
     public void ResetSaveSlot(int slotNumber)
     {
-        // Delete the specific save data from the hard drive!
+        // Delete the specific save data from the hard drive
         PlayerPrefs.DeleteKey("Money_Slot_" + slotNumber);
         PlayerPrefs.Save();
 

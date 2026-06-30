@@ -40,7 +40,7 @@ public class PhysicalButton : MonoBehaviour
 
     private void OnCollisionStay(Collision collision)
     {
-        // If a physical object (like the bottle) is resting on the button, force it down!
+        // If a physical object (like the bottle) is resting on the button, force it down
         transform.localPosition = new Vector3(startPos.x, startPos.y - pushDistance, startPos.z);
     }
 }

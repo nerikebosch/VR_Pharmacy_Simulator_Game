@@ -1,14 +1,14 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.SceneManagement; // Required to change levels!
-using UnityEngine.XR; // NEW: Required for Haptics
+using UnityEngine.SceneManagement;
+using UnityEngine.XR;
 
 public class GameManager : MonoBehaviour
 {
     [Header("Shift Settings")]
     public float shiftTimer = 60f;
     public bool isShiftActive = true;
-    private bool isPaused = false; // NEW: Tracks if the game is paused
+    private bool isPaused = false;
 
     [Header("Economy")]
     public int greenPillPrice = 10;
@@ -34,11 +34,10 @@ public class GameManager : MonoBehaviour
     [Header("UI Links")]
     public TextMeshProUGUI timerText;
     public TextMeshProUGUI endOfShiftText;
-    public GameObject endOfShiftButtons; // We will put the Next Day/Main Menu buttons inside this!
+    public GameObject endOfShiftButtons;
 
-    // --- NEW UI LINKS ---
-    public GameObject activeShiftButtons; // The folder holding Pause & Quit
-    public TextMeshProUGUI pauseButtonText; // To swap between "Pause" and "Resume"
+    public GameObject activeShiftButtons;
+    public TextMeshProUGUI pauseButtonText;
 
     void Start()
     {
@@ -55,7 +54,7 @@ public class GameManager : MonoBehaviour
         // Hide the buttons while we are playing
         if (endOfShiftButtons != null) endOfShiftButtons.SetActive(false);
 
-        // Ensure the timer is visible when the day starts!
+        // Ensure the timer is visible when the day starts
         if (timerText != null) timerText.gameObject.SetActive(true);
 
         if (activeShiftButtons != null) activeShiftButtons.SetActive(true);
@@ -92,7 +91,7 @@ public class GameManager : MonoBehaviour
                      (blues * bluePillPrice) +
                      (reds * redPillPrice);
 
-        // Deduct the penalty for any wrong/extra pills!
+        // Deduct the penalty for any wrong/extra pills
         payout -= penaltyAmount;
 
         sessionMoney += payout;
@@ -104,13 +103,13 @@ public class GameManager : MonoBehaviour
     {
         isShiftActive = false;
 
-        // NEW: Tell the OrderManager to kick everyone out!
+        // Tell the OrderManager to kick everyone out
         if (orderManager != null)
         {
             orderManager.ClearStore();
         }
 
-        // NEW: Play the End of Shift sound!
+        // Play the End of Shift sound
         if (audioSource != null && endOfShiftSound != null)
         {
             audioSource.PlayOneShot(endOfShiftSound);
@@ -123,7 +122,7 @@ public class GameManager : MonoBehaviour
 
         int grossEarnings = sessionMoney + sessionPenalties;
 
-        // Show the text and the buttons!
+        // Show the text and the buttons
         endOfShiftText.text = "SHIFT COMPLETE\n" +
                               "Gross Earnings: $" + grossEarnings + "\n" +
                               "Malpractice Penalties: -$" + sessionPenalties +
@@ -138,7 +137,6 @@ public class GameManager : MonoBehaviour
         if (activeShiftButtons != null) activeShiftButtons.SetActive(false);
     }
 
-    // --- SCENE NAVIGATION METHODS ---
 
     public void TogglePause()
     {
@@ -162,7 +160,7 @@ public class GameManager : MonoBehaviour
 
     public void StartNextDay()
     {
-        // This instantly reloads the current Pharmacy scene, acting as a fresh day!
+        // This instantly reloads the current Pharmacy scene
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
