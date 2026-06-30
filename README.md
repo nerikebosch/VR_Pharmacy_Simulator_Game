@@ -1,4 +1,4 @@
-# 💊 PharmaSort VR: Clinical Precision Training ✨
+# 💊 Pharmacy Simulator VR: Clinical Precision Training ✨
 
 Welcome to **PharmaSort VR**! This is an immersive virtual reality simulation designed for the Meta Quest and Windows Standalone VR platforms using Unity3D and the XR Interaction Toolkit. 
 
